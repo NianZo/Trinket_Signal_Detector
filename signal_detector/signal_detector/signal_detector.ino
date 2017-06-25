@@ -7,8 +7,8 @@ const int signalOut = 1;
 // Variables used
 bool state;
 bool oldState;
-int thisTime;
-int oldTime;
+uint16_t thisTime;
+uint16_t oldTime;
 uint8_t buffer;
 
 void setup() {
@@ -59,8 +59,13 @@ void loop() {
     }
   }
 
+  // Roll time of last transition back to zero if at limit (otherwise condition to test for no signal would never succeed)
+  if (thisTime >= 0xFFFF - 1000) {
+    thisTime = 0;
+  }
+  
   // After 1s (corresponds to switching interval of 0.5Hz) if no signal has been seen, handle as if an invalid signal has been seen
-  if (millis() > oldTime + 1000) {
+  if ((millis() & 0xFFFF) > oldTime + 1000) {
     digitalWrite(signalOut, LOW);
     digitalWrite(outputPin, LOW);
   }
