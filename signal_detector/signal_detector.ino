@@ -65,5 +65,5 @@ void loop() {
   }
 
   // Add delay to smooth input (reduces noise effect of noise/input bounce)
-  delay(10);
+  delay(1);
 }
