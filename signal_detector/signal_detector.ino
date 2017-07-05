@@ -7,8 +7,9 @@ const int signalOut = 1;
 // Variables used
 int state;
 int oldState;
-int thisTime;
-int oldTime;
+uint16_t thisTime;
+uint16_t oldTime;
+uint16_t sampleTime;
 uint8_t buffer;
 
 void setup() {
@@ -21,7 +22,7 @@ void setup() {
   // Initialize variables
   state = 0;
   oldState = 0;
-  thisTime = millis();
+  thisTime = millis() & 0xFFFF;
   oldTime = thisTime;
 
   // Assume input starts low for time before device is on
@@ -29,6 +30,9 @@ void setup() {
 }
 
 void loop() {
+  // Sample the clock time once per loop (grab first 16 bits)
+  sampleTime = millis() & 0xFFFF;
+  
   // Keep a history of past states the input has seen
   buffer = buffer << 1;
   buffer = buffer | digitalRead(inputPin);
@@ -40,10 +44,10 @@ void loop() {
   if (state != oldState) {
     oldState = state;
     oldTime = thisTime;
-    thisTime = millis();
+    thisTime = sampleTime;
 
     // Checks for signals between 0.5 Hz and 2Hz (state switches of between 0.25s and 1s)
-    if (thisTime > oldTime + 250 && thisTime <= oldTime + 1000) {
+    if (thisTime - oldTime > 250 && thisTime - oldTime <= 1000) {
       // Time between state changes is in range, pass through signal and indicate that a proper signal is seen
       digitalWrite(signalOut, state);
       digitalWrite(outputPin, 1);
@@ -55,8 +59,11 @@ void loop() {
   }
 
   // After 1s (corresponds to switching interval of 0.5Hz) if no signal has been seen, handle as if an invalid signal has been seen
-  if (millis() > oldTime + 1000) {
+  if (sampleTime - thisTime > 1000) {
     digitalWrite(signalOut, 0);
     digitalWrite(outputPin, 0);
   }
+
+  // Add delay to smooth input (reduces noise effect of noise/input bounce)
+  delay(10);
 }
